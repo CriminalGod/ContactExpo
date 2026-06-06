@@ -2,9 +2,8 @@ import { PermissionsAndroid, Platform } from 'react-native';
 import Contacts from 'react-native-contacts';
 
 export interface MappedContact {
-  GivenName: string;
-  FamilyName: string;
-  PhoneNumbers: string;
+  Name: string;
+  [key: string]: string;
   EmailAddresses: string;
   Company: string;
 }
@@ -58,18 +57,33 @@ export const contactsService = {
 
     try {
       const contacts = await Contacts.getAll();
+      
+      // Determine the maximum number of phone numbers any contact has
+      const maxPhones = Math.max(
+        1,
+        ...contacts.map(c => (c.phoneNumbers ? c.phoneNumbers.map(p => p.number).filter(Boolean).length : 0))
+      );
+
       const mapped = contacts.map(c => {
-        const phones = c.phoneNumbers ? c.phoneNumbers.map(p => p.number).filter(Boolean).join(', ') : '';
+        const fullName = [c.givenName, c.familyName].filter(Boolean).join(' ').trim();
+        const phones = c.phoneNumbers ? c.phoneNumbers.map(p => p.number).filter(Boolean) : [];
         const emails = c.emailAddresses ? c.emailAddresses.map(e => e.email).filter(Boolean).join(', ') : '';
 
-        return {
-          GivenName: c.givenName || '',
-          FamilyName: c.familyName || '',
-          PhoneNumbers: phones,
-          EmailAddresses: emails,
-          Company: c.company || '',
+        // Construct object with keys in the exact desired column order
+        const orderedObj: any = {
+          Name: fullName,
         };
+        
+        for (let i = 1; i <= maxPhones; i++) {
+          orderedObj[`Phone Number ${i}`] = phones[i - 1] || '';
+        }
+        
+        orderedObj.EmailAddresses = emails;
+        orderedObj.Company = c.company || '';
+
+        return orderedObj as MappedContact;
       });
+      
       return mapped;
     } catch (err) {
       console.warn('Failed to fetch contacts:', err);
