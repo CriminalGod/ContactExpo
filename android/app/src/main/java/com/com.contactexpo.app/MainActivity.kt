@@ -1,4 +1,4 @@
-package com.contactsexpo.app
+package com.contactexpo.app
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
